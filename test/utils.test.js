@@ -1,9 +1,14 @@
 import assert from 'chai/chai'
-import { initAuth, getServicePrefix, getServiceCapitalization } from '../src/utils'
 import feathersNuxt from '../src/index'
 import { feathersSocketioClient as feathersClient } from './fixtures/feathers-client'
 import Vue from 'vue'
 import Vuex from 'vuex'
+import {
+  initAuth,
+  getServicePrefix,
+  getServiceCapitalization,
+  getPaginationInfo
+} from '../src/utils'
 
 Vue.use(Vuex)
 
@@ -37,6 +42,44 @@ describe('Utils', function () {
       .then((token) => {
         assert.isDefined(token, 'the feathers client storage was set')
       })
+  })
+
+  describe('Pagination', function () {
+    it('getPaginationInfo', function () {
+      const params = {
+        qid: 'main-list',
+        response: {
+          data: [],
+          limit: 10,
+          skip: 0,
+          total: 500
+        },
+        query: {
+          test: true,
+          $limit: 10,
+          $skip: 10
+        }
+      }
+      const info = getPaginationInfo(params)
+
+      assert.deepEqual(info, {
+        'qid': 'main-list',
+        'query': {
+          'test': true,
+          '$limit': 10,
+          '$skip': 10
+        },
+        'queryId': '{"test":true}',
+        'queryParams': {
+          'test': true
+        },
+        'subQueryParams': {
+          '$limit': 10,
+          '$skip': 0
+        },
+        'subQueryId': '{"$limit":10,"$skip":0}'
+      }, 'query info formatted correctly')
+    })
   })
 
   describe('Inflections', function () {

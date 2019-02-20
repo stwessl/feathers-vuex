@@ -4,6 +4,9 @@ import inflection from 'inflection'
 import deepDiff from 'deep-diff'
 import Vue from 'vue'
 import isObject from 'lodash.isobject'
+import stringify from 'fast-json-stable-stringify'
+import pick from 'lodash.pick'
+import omit from 'lodash.omit'
 
 const { diff } = deepDiff
 
@@ -230,4 +233,20 @@ export function updateOriginal (newData, existingItem) {
       }
     }
   })
+}
+
+export function getPaginationInfo ({ qid = 'default', response = {}, query = {} }) {
+  const queryParams = omit(query, ['$limit', '$skip'])
+  const subQueryParams = { $limit: response.limit, $skip: response.skip }
+  const queryId = stringify(queryParams)
+  const subQueryId = stringify(subQueryParams)
+
+  return {
+    qid,
+    query,
+    queryId,
+    queryParams,
+    subQueryParams,
+    subQueryId
+  }
 }

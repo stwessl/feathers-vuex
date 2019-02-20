@@ -2,7 +2,7 @@ import Vue from 'vue'
 import _merge from 'lodash.merge'
 import serializeError from 'serialize-error'
 import isObject from 'lodash.isobject'
-import { checkId, updateOriginal } from '../utils'
+import { checkId, updateOriginal, getPaginationInfo } from '../utils'
 
 export default function makeServiceMutations (servicePath, { debug, globalModels }) {
   globalModels = globalModels || { byServicePath: {} }
@@ -248,13 +248,43 @@ export default function makeServiceMutations (servicePath, { debug, globalModels
     // Stores pagination data on state.pagination based on the query identifier (qid)
     // The qid must be manually assigned to `params.qid`
     updatePaginationForQuery (state, { qid, response, query }) {
-      const { data, limit, skip, total } = response
+      const { data, total } = response
       const { idField } = state
-      const ids = data.map(item => {
-        return item[idField]
-      })
+      const ids = data.map(i => i[idField])
       const queriedAt = new Date().getTime()
-      Vue.set(state.pagination, qid, { limit, skip, total, ids, query, queriedAt })
+      const {
+        queryId,
+        queryParams,
+        subQueryId,
+        subQueryParams
+      } = getPaginationInfo({ qid, response, query })
+
+      const mostRecent = {
+        query,
+        queryId,
+        queryParams,
+        subQueryId,
+        subQueryParams,
+        queriedAt
+      }
+
+      const qidData = state.pagination[qid] || {}
+      Object.assign(qidData, { mostRecent })
+      qidData[queryId] = qidData[queryId] || {}
+      const queryData = {
+        total,
+        queryParams
+      }
+      Object.assign(qidData[queryId], queryData)
+
+      const subQueryData = {
+        [subQueryId]: { subQueryParams, ids, queriedAt }
+      }
+      Object.assign(qidData[queryId], subQueryData)
+
+      const newState = Object.assign({}, state.pagination[qid], qidData)
+
+      Vue.set(state.pagination, qid, newState)
     },
 
     setFindPending (state) {

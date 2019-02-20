@@ -6,6 +6,10 @@ import { feathersRestClient as feathersClient } from '../fixtures/feathers-clien
 import errors from '@feathersjs/errors'
 import Vue from 'vue'
 import Vuex from 'vuex'
+import fakeData from '../fixtures/fake-data.json'
+import { getPaginationInfo } from '../../src/utils'
+import { diff as deepDiff } from 'deep-object-diff'
+import omitDeep from 'omit-deep-lodash'
 
 Vue.use(Vuex)
 
@@ -792,25 +796,203 @@ describe('Service Module - Mutations', function () {
     assert(original.test === false, 'the original item was updated after commitCopy')
   })
 
-  it('updatePaginationForQuery', function () {
+  it.only('updatePaginationForQuery', function () {
+    this.timeout(600000)
     const state = this.state
-    const qid = 'query-identifier'
-    const query = { limit: 2 }
-    const response = {
-      data: [{ _id: 1, test: true }],
-      limit: 2,
-      skip: 0,
-      total: 1
-    }
+    const qid = 'main-list'
+    const decisionTable = [
+      {
+        description: 'initial query, limit 10, skip 0',
+        query: { $limit: 10 },
+        response: {
+          data: fakeData.transactions.slice(0, 10),
+          limit: 10,
+          skip: 0,
+          total: fakeData.transactions.length
+        },
+        makeResult (props) {
+          const {
+            query,
+            queryId,
+            queryParams,
+            subQueryId,
+            subQueryParams,
+            queriedAt
+          } = props
 
-    updatePaginationForQuery(state, { qid, response, query })
+          return {
+            'main-list': {
+              mostRecent: {
+                query,
+                queryId,
+                queryParams,
+                subQueryId,
+                subQueryParams,
+                queriedAt
+              },
+              '{}': {
+                total: fakeData.transactions.length,
+                queryParams: {},
+                ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
+                  subQueryParams,
+                  ids: fakeData.transactions.slice(0, 10).map(i => i[state.idField]),
+                  queriedAt
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        description: 'initial query, limit 10, skip 10',
+        query: { $limit: 10, $skip: 10 },
+        response: {
+          data: fakeData.transactions.slice(10, 20),
+          limit: 10,
+          skip: 10,
+          total: fakeData.transactions.length
+        },
+        makeResult (props) {
+          const {
+            query,
+            queryId,
+            queryParams,
+            subQueryId,
+            subQueryParams,
+            queriedAt
+          } = props
 
-    const pageData = state.pagination[qid]
-    assert(pageData.ids.length === 1, `the _id was added to the pagination ids`)
-    assert(pageData.limit === 2, 'the limit was correct')
-    assert(pageData.skip === 0, 'the skip was correct')
-    assert(pageData.total === 1, 'the total was correct')
-    assert.deepEqual(pageData.query, query, 'the query was stored')
+          return {
+            'main-list': {
+              mostRecent: {
+                query,
+                queryId,
+                queryParams,
+                subQueryId,
+                subQueryParams,
+                queriedAt
+              },
+              '{}': {
+                total: fakeData.transactions.length,
+                queryParams: {},
+                ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
+                  subQueryParams: {
+                    $limit: 10,
+                    $skip: 0
+                  },
+                  ids: fakeData.transactions.slice(0, 10).map(i => i[state.idField]),
+                  queriedAt
+                },
+                ["{\"$limit\":10,\"$skip\":10}"]: { //eslint-disable-line
+                  subQueryParams: {
+                    $limit: 10,
+                    $skip: 10
+                  },
+                  ids: fakeData.transactions.slice(10, 20).map(i => i[state.idField]),
+                  queriedAt
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        description: 'separate query, limit 10, skip 10',
+        query: { test: true, $limit: 10, $skip: 10 },
+        response: {
+          data: fakeData.transactions.slice(10, 20),
+          limit: 10,
+          skip: 10,
+          total: fakeData.transactions.length
+        },
+        makeResult (props) {
+          const {
+            query,
+            queryId,
+            queryParams,
+            subQueryId,
+            subQueryParams,
+            queriedAt
+          } = props
+
+          return {
+            'main-list': {
+              mostRecent: {
+                query,
+                queryId,
+                queryParams,
+                subQueryId,
+                subQueryParams,
+                queriedAt
+              },
+              '{}': {
+                total: fakeData.transactions.length,
+                queryParams: {},
+                ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
+                  subQueryParams: {
+                    $limit: 10,
+                    $skip: 0
+                  },
+                  ids: fakeData.transactions.slice(0, 10).map(i => i[state.idField]),
+                  queriedAt
+                },
+                ["{\"$limit\":10,\"$skip\":10}"]: { //eslint-disable-line
+                  subQueryParams: {
+                    $limit: 10,
+                    $skip: 10
+                  },
+                  ids: fakeData.transactions.slice(10, 20).map(i => i[state.idField]),
+                  queriedAt
+                }
+              },
+              '{"test":true}': {
+                total: fakeData.transactions.length,
+                queryParams: { test: true },
+                ["{\"$limit\":10,\"$skip\":10}"]: { //eslint-disable-line
+                  subQueryParams: {
+                    $limit: 10,
+                    $skip: 10
+                  },
+                  ids: fakeData.transactions.slice(10, 20).map(i => i[state.idField]),
+                  queriedAt
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+
+    decisionTable.forEach(({ description, query, response, makeResult }) => {
+      const {
+        queryId,
+        queryParams,
+        subQueryId,
+        subQueryParams
+      } = getPaginationInfo({ qid, response, query })
+      const queriedAt = new Date().getTime()
+      const result = makeResult({
+        query,
+        queryId,
+        queryParams,
+        subQueryId,
+        subQueryParams,
+        queriedAt
+      })
+
+      updatePaginationForQuery(state, { qid, response, query })
+
+      const diff = deepDiff(
+        omitDeep(state.pagination, 'queriedAt'),
+        omitDeep(result, 'queriedAt')
+      )
+
+      assert.deepEqual(
+        omitDeep(state.pagination, 'queriedAt'),
+        omitDeep(result, 'queriedAt'),
+        description
+      )
+    })
   })
 
   describe('Pending', function () {
