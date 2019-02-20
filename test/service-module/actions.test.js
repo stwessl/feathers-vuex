@@ -205,11 +205,28 @@ describe('Service Module - Actions', () => {
 
         actions.find.call({ $store: store }, { query: {} })
           .then(response => {
-            const { ids, limit, skip, total } = store.state.tasks.pagination.default
-            assert(ids.length === 10, 'ten ids were returned in this page')
-            assert(limit === 10, 'limit matches the default pagination limit on the server')
-            assert(skip === 0, 'skip was correct')
-            assert(total === 10, 'total was correct')
+            const { default: d } = store.state.tasks.pagination
+            assert(d.mostRecent)
+            assert(d.mostRecent.queriedAt)
+            assert(d.mostRecent.query)
+            assert(d.mostRecent.queryId === '{}')
+            assert(d.mostRecent.queryParams)
+            assert(d.mostRecent.subQueryId === '{"$limit":10,"$skip":0}')
+            assert.deepEqual(
+              d.mostRecent.subQueryParams,
+              { $limit: 10, $skip: 0 }
+            )
+            assert(d['{}'])
+            assert(d['{}'].queryParams)
+            assert(d['{}'].total === 10)
+            assert(d['{}']['{"$limit":10,"$skip":0}'])
+            assert(d['{}']['{"$limit":10,"$skip":0}'].ids.length === 10)
+            assert(d['{}']['{"$limit":10,"$skip":0}'].queriedAt)
+            assert.deepEqual(
+              d['{}']['{"$limit":10,"$skip":0}'].subQueryParams,
+              { $limit: 10, $skip: 0 }
+            )
+
             done()
           })
       })
@@ -223,11 +240,7 @@ describe('Service Module - Actions', () => {
 
         actions.find.call({ $store: store }, { query: {}, qid })
           .then(response => {
-            const { ids, limit, skip, total } = store.state.tasks.pagination[qid]
-            assert(ids.length === 10, 'ten ids were returned in this page')
-            assert(limit === 10, 'limit matches the default pagination limit on the server')
-            assert(skip === 0, 'skip was correct')
-            assert(total === 10, 'total was correct')
+            assert(store.state.tasks.pagination[qid])
             done()
           })
       })
@@ -241,11 +254,11 @@ describe('Service Module - Actions', () => {
 
         actions.find.call({ $store: store }, { query: { $limit: 5, $skip: 2 }, qid })
           .then(response => {
-            const { ids, limit, skip, total } = store.state.tasks.pagination[qid]
-            assert(ids.length === 5, 'ten ids were returned in this page')
-            assert(limit === 5, 'limit matches the default pagination limit on the server')
-            assert(skip === 2, 'skip was correct')
-            assert(total === 10, 'total was correct')
+            assert(store.state.tasks.pagination[qid])
+            assert.deepEqual(
+              store.state.tasks.pagination[qid].mostRecent.query,
+              { $limit: 5, $skip: 2 }
+            )
             done()
           })
       })
@@ -264,11 +277,7 @@ describe('Service Module - Actions', () => {
           .then(response => actions.find.call({ $store: store }, { query: {}, qid: qids[1] }))
           .then(response => {
             qids.forEach(qid => {
-              const { ids, limit, skip, total } = store.state.tasks.pagination[qid]
-              assert(ids.length === 10, 'ten ids were returned in this page')
-              assert(limit === 10, 'limit matches the default pagination limit on the server')
-              assert(skip === 0, 'skip was correct')
-              assert(total === 10, 'total was correct')
+              assert(store.state.tasks.pagination[qid])
             })
 
             done()

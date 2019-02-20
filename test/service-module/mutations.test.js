@@ -796,7 +796,7 @@ describe('Service Module - Mutations', function () {
     assert(original.test === false, 'the original item was updated after commitCopy')
   })
 
-  it.only('updatePaginationForQuery', function () {
+  it('updatePaginationForQuery', function () {
     this.timeout(600000)
     const state = this.state
     const qid = 'main-list'
