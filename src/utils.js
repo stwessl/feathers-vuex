@@ -5,8 +5,7 @@ import deepDiff from 'deep-diff'
 import Vue from 'vue'
 import isObject from 'lodash.isobject'
 import stringify from 'fast-json-stable-stringify'
-import pick from 'lodash.pick'
-import omit from 'lodash.omit'
+import _omit from 'lodash.omit'
 import _get from 'lodash.get'
 
 const { diff } = deepDiff
@@ -236,9 +235,9 @@ export function updateOriginal (newData, existingItem) {
   })
 }
 
-export function getPaginationInfo ({ qid = 'default', response, query }) {
-  response = response || {}
-  query = query || {}
+export function getQueryInfo (params = {}, response = {}) {
+  const query = params.query || {}
+  const qid = params.qid || 'default'
   const $limit = (response.limit !== null && response.limit !== undefined)
     ? response.limit
     : query.$limit
@@ -246,24 +245,24 @@ export function getPaginationInfo ({ qid = 'default', response, query }) {
     ? response.skip
     : query.$skip
 
-  const queryParams = omit(query, ['$limit', '$skip'])
+  const queryParams = _omit(query, ['$limit', '$skip'])
   const queryId = stringify(queryParams)
-  const subQueryParams = $limit !== undefined ? { $limit, $skip } : undefined
-  const subQueryId = subQueryParams ? stringify(subQueryParams) : undefined
+  const pageParams = $limit !== undefined ? { $limit, $skip } : undefined
+  const pageId = pageParams ? stringify(pageParams) : undefined
 
   return {
     qid,
     query,
     queryId,
     queryParams,
-    subQueryParams,
-    subQueryId
+    pageParams,
+    pageId
   }
 }
 
 export function getItemsFromQueryInfo (pagination, queryInfo, keyedById) {
-  const { queryId, subQueryId } = queryInfo
-  const ids = _get(pagination, `[${queryId}][${subQueryId}].ids`)
+  const { queryId, pageId } = queryInfo
+  const ids = _get(pagination, `[${queryId}][${pageId}].ids`)
   if (ids && ids.length) {
     return ids.map(id => keyedById[id])
   } else {

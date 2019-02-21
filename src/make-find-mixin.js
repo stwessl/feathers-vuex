@@ -1,9 +1,10 @@
 import {
   getServicePrefix,
   getServiceCapitalization,
-  getPaginationInfo,
+  getQueryInfo,
   getItemsFromQueryInfo
 } from './utils'
+import _get from 'lodash.get'
 
 export default function makeFindMixin (options) {
   const {
@@ -47,7 +48,7 @@ export default function makeFindMixin (options) {
   const QUERY_WHEN = `${prefix}QueryWhen`
   const FIND_ACTION = `find${capitalized}`
   const PAGINATION = `${prefix}PaginationData`
-  const MOST_RECENT_QUERY = `${prefix}MostRecentQueryInfo`
+  const MOST_RECENT_QUERY = `${prefix}LatestQuery`
   const LOCAL = `${prefix}Local`
   const QID = `${prefix}Qid`
   const data = {
@@ -72,18 +73,22 @@ export default function makeFindMixin (options) {
     },
     computed: {
       [PAGINATION] () {
-        return this.$store.state[this[SERVICE_NAME]].pagination[qid] || {}
+        return this.$store.state[this[SERVICE_NAME]].pagination
       },
       [ITEMS] () {
         const paramsToUse = getParams(undefined, this[PARAMS], this[FETCH_PARAMS])
-        const { defaultSkip: skip, defaultLimit: limit } = this[PAGINATION]
-        const response = (skip !== null && skip !== undefined && limit !== null && limit !== undefined) ? { limit, skip } : {}
-        const queryInfo = getPaginationInfo({
-          qid: this[QID],
-          response,
-          query: paramsToUse.query
-        })
-        const pagination = this[PAGINATION]
+        if (!paramsToUse) {
+          return []
+        }
+        const pagination = this[PAGINATION][paramsToUse.qid] || {}
+        const { defaultSkip: skip, defaultLimit: limit } = pagination
+        const response = (
+          skip !== null &&
+          skip !== undefined &&
+          limit !== null &&
+          limit !== undefined
+        ) ? { limit, skip } : {}
+        const queryInfo = getQueryInfo(paramsToUse, response)
         const { keyedById } = this.$store.state[this[SERVICE_NAME]]
         const items = getItemsFromQueryInfo(pagination, queryInfo, keyedById)
 
@@ -108,24 +113,20 @@ export default function makeFindMixin (options) {
         const paramsToUse = getParams(params, this[PARAMS], this[FETCH_PARAMS])
 
         if (!this[LOCAL]) {
-          const shouldQuery = typeof this[QUERY_WHEN] === 'function'
-            ? this[QUERY_WHEN](paramsToUse)
-            : this[QUERY_WHEN]
+          const hasQueryWhen = Object.getPrototypeOf(this).hasOwnProperty(QUERY_WHEN)
 
-          if (shouldQuery) {
+          if (!hasQueryWhen || this[QUERY_WHEN]) {
             this[IS_FIND_PENDING] = true
 
             if (paramsToUse) {
               paramsToUse.query = paramsToUse.query || {}
-              paramsToUse.qid = qid
+              paramsToUse.qid = paramsToUse.qid || this[QID]
+              this[QID] = paramsToUse.qid
 
               return this.$store.dispatch(`${this[SERVICE_NAME]}/find`, paramsToUse)
                 .then(response => {
-                  const queryInfo = getPaginationInfo({
-                    qid,
-                    response,
-                    query: paramsToUse.query
-                  })
+                  const queryInfo = getQueryInfo(paramsToUse, response)
+                  queryInfo.response = response
                   queryInfo.isOutdated = false
 
                   this[MOST_RECENT_QUERY] = queryInfo
@@ -137,6 +138,14 @@ export default function makeFindMixin (options) {
             this[MOST_RECENT_QUERY].isOutdated = true
           }
         }
+      },
+      getPaginationForQuery (params = {}) {
+        const pagination = this[PAGINATION]
+        const { qid, queryId, pageId } = getQueryInfo(params)
+        const queryInfo = _get(pagination, `[${qid}][${queryId}]`) || {}
+        const pageInfo = _get(pagination, `[${qid}][${queryId}][${pageId}]`) || {}
+
+        return { queryInfo, pageInfo }
       }
     },
     created () {
@@ -166,7 +175,7 @@ export default function makeFindMixin (options) {
         if (!local) {
           // TODO: Add this message to the logging:
           //       "Pass { local: true } to disable this warning and only do local queries."
-          console.log(`No "${PARAMS}" or "${FETCH_PARAMS}" attribute was found in the makeFindMixin for the "${service}" service (using name "${nameToUse}").  No queries will be made.`)
+          console.error(`No "${PARAMS}" or "${FETCH_PARAMS}" attribute was found in the makeFindMixin for the "${service}" service (using name "${nameToUse}").  No queries will be made.`)
         }
       }
     }
@@ -175,7 +184,6 @@ export default function makeFindMixin (options) {
   setupAttribute(SERVICE_NAME, service, 'computed', true)
   setupAttribute(PARAMS, params)
   setupAttribute(FETCH_PARAMS, fetchQuery)
-  setupAttribute(QUERY_WHEN, queryWhen, 'methods')
   setupAttribute(LOCAL, local)
 
   function setupAttribute (NAME, value, computedOrMethods = 'computed', returnTheValue = false) {

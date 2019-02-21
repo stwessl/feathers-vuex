@@ -3,11 +3,12 @@ import feathersNuxt from '../src/index'
 import { feathersSocketioClient as feathersClient } from './fixtures/feathers-client'
 import Vue from 'vue'
 import Vuex from 'vuex'
+import { diff as deepDiff } from 'deep-object-diff'
 import {
   initAuth,
   getServicePrefix,
   getServiceCapitalization,
-  getPaginationInfo
+  getQueryInfo
 } from '../src/utils'
 
 Vue.use(Vuex)
@@ -45,40 +46,76 @@ describe('Utils', function () {
   })
 
   describe('Pagination', function () {
-    it('getPaginationInfo', function () {
+    it('getQueryInfo', function () {
       const params = {
         qid: 'main-list',
-        response: {
-          data: [],
-          limit: 10,
-          skip: 0,
-          total: 500
-        },
         query: {
           test: true,
           $limit: 10,
-          $skip: 10
+          $skip: 0
         }
       }
-      const info = getPaginationInfo(params)
-
-      assert.deepEqual(info, {
+      const response = {
+        data: [],
+        limit: 10,
+        skip: 0,
+        total: 500
+      }
+      const info = getQueryInfo(params, response)
+      const expected = {
         'qid': 'main-list',
         'query': {
           'test': true,
           '$limit': 10,
-          '$skip': 10
+          '$skip': 0
         },
         'queryId': '{"test":true}',
         'queryParams': {
           'test': true
         },
-        'subQueryParams': {
+        'pageParams': {
           '$limit': 10,
           '$skip': 0
         },
-        'subQueryId': '{"$limit":10,"$skip":0}'
-      }, 'query info formatted correctly')
+        'pageId': '{"$limit":10,"$skip":0}'
+      }
+      const diff = deepDiff(info, expected)
+
+      assert.deepEqual(info, expected, 'query info formatted correctly')
+    })
+
+    it('getQueryInfo no limit or skip', function () {
+      const params = {
+        qid: 'main-list',
+        query: {
+          test: true
+        }
+      }
+      const response = {
+        data: [],
+        limit: 10,
+        skip: 0,
+        total: 500
+      }
+      const info = getQueryInfo(params, response)
+      const expected = {
+        'qid': 'main-list',
+        'query': {
+          'test': true
+        },
+        'queryId': '{"test":true}',
+        'queryParams': {
+          'test': true
+        },
+        'pageParams': {
+          '$limit': 10,
+          '$skip': 0
+        },
+        'pageId': '{"$limit":10,"$skip":0}'
+      }
+      const diff = deepDiff(info, expected)
+
+      assert.deepEqual(info, expected, 'query info formatted correctly')
     })
   })
 

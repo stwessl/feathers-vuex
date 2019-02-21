@@ -5,7 +5,7 @@ import FeathersVuexFind from './FeathersVuexFind'
 import FeathersVuexGet from './FeathersVuexGet'
 import makeFindMixin from './make-find-mixin'
 import makeGetMixin from './make-get-mixin'
-import { initAuth } from './utils'
+import { initAuth, getQueryInfo } from './utils'
 
 const globalDefaults = {
   idField: 'id', // The field in each record that will contain the id
@@ -17,7 +17,14 @@ const globalModels = {
   byServicePath: {}
 }
 
-export { initAuth, FeathersVuexFind, FeathersVuexGet, makeFindMixin, makeGetMixin }
+export {
+  initAuth,
+  getQueryInfo,
+  FeathersVuexFind,
+  FeathersVuexGet,
+  makeFindMixin,
+  makeGetMixin
+}
 
 export default function (feathersClient, globalOptions = {}) {
   globalOptions = Object.assign({}, globalDefaults, globalOptions)

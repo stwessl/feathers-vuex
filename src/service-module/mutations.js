@@ -2,7 +2,7 @@ import Vue from 'vue'
 import _merge from 'lodash.merge'
 import serializeError from 'serialize-error'
 import isObject from 'lodash.isobject'
-import { checkId, updateOriginal, getPaginationInfo } from '../utils'
+import { checkId, updateOriginal, getQueryInfo } from '../utils'
 
 export default function makeServiceMutations (servicePath, { debug, globalModels }) {
   globalModels = globalModels || { byServicePath: {} }
@@ -255,9 +255,9 @@ export default function makeServiceMutations (servicePath, { debug, globalModels
       const {
         queryId,
         queryParams,
-        subQueryId,
-        subQueryParams
-      } = getPaginationInfo({ qid, response, query })
+        pageId,
+        pageParams
+      } = getQueryInfo({ qid, query }, response)
 
       if (!state.pagination[qid]) {
         Vue.set(state.pagination, qid, {})
@@ -273,8 +273,8 @@ export default function makeServiceMutations (servicePath, { debug, globalModels
         query,
         queryId,
         queryParams,
-        subQueryId,
-        subQueryParams,
+        pageId,
+        pageParams,
         queriedAt
       }
 
@@ -287,10 +287,10 @@ export default function makeServiceMutations (servicePath, { debug, globalModels
       }
       Object.assign(qidData[queryId], queryData)
 
-      const subQueryData = {
-        [subQueryId]: { subQueryParams, ids, queriedAt }
+      const pageData = {
+        [pageId]: { pageParams, ids, queriedAt }
       }
-      Object.assign(qidData[queryId], subQueryData)
+      Object.assign(qidData[queryId], pageData)
 
       const newState = Object.assign({}, state.pagination[qid], qidData)
 

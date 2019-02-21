@@ -7,7 +7,7 @@ import errors from '@feathersjs/errors'
 import Vue from 'vue'
 import Vuex from 'vuex'
 import fakeData from '../fixtures/fake-data.json'
-import { getPaginationInfo } from '../../src/utils'
+import { getQueryInfo } from '../../src/utils'
 import { diff as deepDiff } from 'deep-object-diff'
 import omitDeep from 'omit-deep-lodash'
 
@@ -815,26 +815,27 @@ describe('Service Module - Mutations', function () {
             query,
             queryId,
             queryParams,
-            subQueryId,
-            subQueryParams,
+            pageId,
+            pageParams,
             queriedAt
           } = props
 
           return {
             'main-list': {
+              defaultSkip: 0,
               mostRecent: {
                 query,
                 queryId,
                 queryParams,
-                subQueryId,
-                subQueryParams,
+                pageId,
+                pageParams,
                 queriedAt
               },
               '{}': {
                 total: fakeData.transactions.length,
                 queryParams: {},
                 ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
-                  subQueryParams,
+                  pageParams,
                   ids: fakeData.transactions.slice(0, 10).map(i => i[state.idField]),
                   queriedAt
                 }
@@ -857,26 +858,27 @@ describe('Service Module - Mutations', function () {
             query,
             queryId,
             queryParams,
-            subQueryId,
-            subQueryParams,
+            pageId,
+            pageParams,
             queriedAt
           } = props
 
           return {
             'main-list': {
+              defaultSkip: 0,
               mostRecent: {
                 query,
                 queryId,
                 queryParams,
-                subQueryId,
-                subQueryParams,
+                pageId,
+                pageParams,
                 queriedAt
               },
               '{}': {
                 total: fakeData.transactions.length,
                 queryParams: {},
                 ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
-                  subQueryParams: {
+                  pageParams: {
                     $limit: 10,
                     $skip: 0
                   },
@@ -884,7 +886,7 @@ describe('Service Module - Mutations', function () {
                   queriedAt
                 },
                 ["{\"$limit\":10,\"$skip\":10}"]: { //eslint-disable-line
-                  subQueryParams: {
+                  pageParams: {
                     $limit: 10,
                     $skip: 10
                   },
@@ -910,26 +912,27 @@ describe('Service Module - Mutations', function () {
             query,
             queryId,
             queryParams,
-            subQueryId,
-            subQueryParams,
+            pageId,
+            pageParams,
             queriedAt
           } = props
 
           return {
             'main-list': {
+              defaultSkip: 0,
               mostRecent: {
                 query,
                 queryId,
                 queryParams,
-                subQueryId,
-                subQueryParams,
+                pageId,
+                pageParams,
                 queriedAt
               },
               '{}': {
                 total: fakeData.transactions.length,
                 queryParams: {},
                 ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
-                  subQueryParams: {
+                  pageParams: {
                     $limit: 10,
                     $skip: 0
                   },
@@ -937,7 +940,7 @@ describe('Service Module - Mutations', function () {
                   queriedAt
                 },
                 ["{\"$limit\":10,\"$skip\":10}"]: { //eslint-disable-line
-                  subQueryParams: {
+                  pageParams: {
                     $limit: 10,
                     $skip: 10
                   },
@@ -949,7 +952,7 @@ describe('Service Module - Mutations', function () {
                 total: fakeData.transactions.length,
                 queryParams: { test: true },
                 ["{\"$limit\":10,\"$skip\":10}"]: { //eslint-disable-line
-                  subQueryParams: {
+                  pageParams: {
                     $limit: 10,
                     $skip: 10
                   },
@@ -967,16 +970,16 @@ describe('Service Module - Mutations', function () {
       const {
         queryId,
         queryParams,
-        subQueryId,
-        subQueryParams
-      } = getPaginationInfo({ qid, response, query })
+        pageId,
+        pageParams
+      } = getQueryInfo({ qid, query }, response)
       const queriedAt = new Date().getTime()
-      const result = makeResult({
+      const expectedResult = makeResult({
         query,
         queryId,
         queryParams,
-        subQueryId,
-        subQueryParams,
+        pageId,
+        pageParams,
         queriedAt
       })
 
@@ -984,12 +987,12 @@ describe('Service Module - Mutations', function () {
 
       const diff = deepDiff(
         omitDeep(state.pagination, 'queriedAt'),
-        omitDeep(result, 'queriedAt')
+        omitDeep(expectedResult, 'queriedAt')
       )
 
       assert.deepEqual(
         omitDeep(state.pagination, 'queriedAt'),
-        omitDeep(result, 'queriedAt'),
+        omitDeep(expectedResult, 'queriedAt'),
         description
       )
     })

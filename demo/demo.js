@@ -19,6 +19,16 @@ const feathersClient = feathers()
   }))
 const { FeathersVuex, service } = feathersVuex(feathersClient, { idField: '_id' })
 
+feathersClient.service('transactions').hooks({
+  before: {
+    find: [
+      context => {
+        console.log('fetching from server', context.params.query)
+      }
+    ]
+  }
+})
+
 Vue.use(Vuex)
 Vue.use(FeathersVuex)
 
@@ -45,11 +55,22 @@ const App = {
   template: '#app-template',
   data: () => ({
     limit: 10,
-    skip: 0
+    skip: 0,
+    sortField: 'name',
+    sortDirection: 1
   }),
   computed: {
     transactionsParams () {
-      return { query: { $limit: this.limit, $skip: this.skip } }
+      return {
+        query: {
+          $limit: this.limit,
+          $skip: this.skip,
+          $sort: {
+            [this.sortField]: this.sortDirection
+          }
+        },
+        qid: 'main-list'
+      }
     },
     transactionsQueryWhen () {
       return !this.transactions.length
@@ -61,7 +82,25 @@ const App = {
       this.skip = newSkip < 0 ? 0 : newSkip
     },
     next () {
-      this.skip += this.limit
+      const { queryInfo } = this.getPaginationForQuery(this.transactionsParams)
+      const { total } = queryInfo
+
+      if (this.skip + this.limit <= total) {
+        this.skip += this.limit
+      }
+    },
+    sortBy (fieldName) {
+      const sameField = fieldName === this.sortField
+      if (sameField) {
+        this.sortDirection = this.sortDirection === 1 ? -1 : 1
+      } else {
+        this.sortField = fieldName
+      }
+    }
+  },
+  filters: {
+    json: (value) => {
+      return JSON.stringify(value, null, 2)
     }
   }
 }

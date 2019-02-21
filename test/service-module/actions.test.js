@@ -211,9 +211,9 @@ describe('Service Module - Actions', () => {
             assert(d.mostRecent.query)
             assert(d.mostRecent.queryId === '{}')
             assert(d.mostRecent.queryParams)
-            assert(d.mostRecent.subQueryId === '{"$limit":10,"$skip":0}')
+            assert(d.mostRecent.pageId === '{"$limit":10,"$skip":0}')
             assert.deepEqual(
-              d.mostRecent.subQueryParams,
+              d.mostRecent.pageParams,
               { $limit: 10, $skip: 0 }
             )
             assert(d['{}'])
@@ -223,7 +223,7 @@ describe('Service Module - Actions', () => {
             assert(d['{}']['{"$limit":10,"$skip":0}'].ids.length === 10)
             assert(d['{}']['{"$limit":10,"$skip":0}'].queriedAt)
             assert.deepEqual(
-              d['{}']['{"$limit":10,"$skip":0}'].subQueryParams,
+              d['{}']['{"$limit":10,"$skip":0}'].pageParams,
               { $limit: 10, $skip: 0 }
             )
 
