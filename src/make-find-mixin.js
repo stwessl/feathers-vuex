@@ -1,7 +1,21 @@
-import { getServicePrefix, getServiceCapitalization } from './utils'
+import {
+  getServicePrefix,
+  getServiceCapitalization,
+  getPaginationInfo,
+  getItemsFromQueryInfo
+} from './utils'
 
 export default function makeFindMixin (options) {
-  const { service, params, fetchQuery, queryWhen = () => true, local = false, qid = 'default', items, debug } = options
+  const {
+    service,
+    params,
+    fetchQuery,
+    queryWhen = () => true,
+    local = false,
+    qid = 'default',
+    items,
+    debug
+  } = options
   let { name, watch = [] } = options
 
   if (typeof watch === 'string') {
@@ -33,12 +47,23 @@ export default function makeFindMixin (options) {
   const QUERY_WHEN = `${prefix}QueryWhen`
   const FIND_ACTION = `find${capitalized}`
   const PAGINATION = `${prefix}PaginationData`
+  const MOST_RECENT_QUERY = `${prefix}MostRecentQueryInfo`
   const LOCAL = `${prefix}Local`
   const QID = `${prefix}Qid`
   const data = {
     [IS_FIND_PENDING]: false,
     [WATCH]: watch,
-    [QID]: qid
+    [QID]: qid,
+    [MOST_RECENT_QUERY]: null
+  }
+  const getParams = (providedParams, params, fetchParams) => {
+    if (providedParams) {
+      return providedParams
+    } else if (fetchParams || fetchParams === null) {
+      return fetchParams
+    } else {
+      return params
+    }
   }
 
   const mixin = {
@@ -46,8 +71,29 @@ export default function makeFindMixin (options) {
       return data
     },
     computed: {
+      [PAGINATION] () {
+        return this.$store.state[this[SERVICE_NAME]].pagination[qid] || {}
+      },
       [ITEMS] () {
-        return this[PARAMS] ? this.$store.getters[`${this[SERVICE_NAME]}/find`](this[PARAMS]).data : []
+        const paramsToUse = getParams(undefined, this[PARAMS], this[FETCH_PARAMS])
+        const { defaultSkip: skip, defaultLimit: limit } = this[PAGINATION]
+        const response = (skip !== null && skip !== undefined && limit !== null && limit !== undefined) ? { limit, skip } : {}
+        const queryInfo = getPaginationInfo({
+          qid: this[QID],
+          response,
+          query: paramsToUse.query
+        })
+        const pagination = this[PAGINATION]
+        const { keyedById } = this.$store.state[this[SERVICE_NAME]]
+        const items = getItemsFromQueryInfo(pagination, queryInfo, keyedById)
+
+        if (this[LOCAL] && this[PARAMS]) {
+          return this.$store.getters[`${this[SERVICE_NAME]}/find`](this[PARAMS]).data
+        } else if (items && items.length) {
+          return items
+        } else {
+          return []
+        }
       },
       [ITEMS_FETCHED] () {
         if (this[FETCH_PARAMS]) {
@@ -59,32 +105,36 @@ export default function makeFindMixin (options) {
     },
     methods: {
       [FIND_ACTION] (params) {
-        let paramsToUse
-        if (params) {
-          paramsToUse = params
-        } else if (this[FETCH_PARAMS] || this[FETCH_PARAMS] === null) {
-          paramsToUse = this[FETCH_PARAMS]
-        } else {
-          paramsToUse = this[PARAMS]
-        }
+        const paramsToUse = getParams(params, this[PARAMS], this[FETCH_PARAMS])
 
         if (!this[LOCAL]) {
-          if (typeof this[QUERY_WHEN] === 'function' ? this[QUERY_WHEN](paramsToUse) : this[QUERY_WHEN]) {
+          const shouldQuery = typeof this[QUERY_WHEN] === 'function'
+            ? this[QUERY_WHEN](paramsToUse)
+            : this[QUERY_WHEN]
+
+          if (shouldQuery) {
             this[IS_FIND_PENDING] = true
 
             if (paramsToUse) {
               paramsToUse.query = paramsToUse.query || {}
-
-              if (qid) {
-                paramsToUse.qid = qid
-              }
+              paramsToUse.qid = qid
 
               return this.$store.dispatch(`${this[SERVICE_NAME]}/find`, paramsToUse)
                 .then(response => {
+                  const queryInfo = getPaginationInfo({
+                    qid,
+                    response,
+                    query: paramsToUse.query
+                  })
+                  queryInfo.isOutdated = false
+
+                  this[MOST_RECENT_QUERY] = queryInfo
                   this[IS_FIND_PENDING] = false
                   return response
                 })
             }
+          } else {
+            this[MOST_RECENT_QUERY].isOutdated = true
           }
         }
       }
@@ -119,12 +169,6 @@ export default function makeFindMixin (options) {
           console.log(`No "${PARAMS}" or "${FETCH_PARAMS}" attribute was found in the makeFindMixin for the "${service}" service (using name "${nameToUse}").  No queries will be made.`)
         }
       }
-    }
-  }
-
-  if (qid) {
-    mixin.computed[PAGINATION] = function () {
-      return this.$store.state[this[SERVICE_NAME]].pagination[qid]
     }
   }
 
