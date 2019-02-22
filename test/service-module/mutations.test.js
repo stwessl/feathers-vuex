@@ -802,6 +802,50 @@ describe('Service Module - Mutations', function () {
     const qid = 'main-list'
     const decisionTable = [
       {
+        description: 'initial query empty',
+        query: {},
+        response: {
+          data: fakeData.transactions.slice(0, 10),
+          limit: 10,
+          skip: 0,
+          total: fakeData.transactions.length
+        },
+        makeResult (props) {
+          const {
+            query,
+            queryId,
+            queryParams,
+            pageId,
+            pageParams,
+            queriedAt
+          } = props
+
+          return {
+            defaultLimit: 10,
+            defaultSkip: 0,
+            'main-list': {
+              mostRecent: {
+                query,
+                queryId,
+                queryParams,
+                pageId,
+                pageParams,
+                queriedAt
+              },
+              '{}': {
+                total: fakeData.transactions.length,
+                queryParams: {},
+                ["{\"$limit\":10,\"$skip\":0}"]: { //eslint-disable-line
+                  pageParams,
+                  ids: fakeData.transactions.slice(0, 10).map(i => i[state.idField]),
+                  queriedAt
+                }
+              }
+            }
+          }
+        }
+      },
+      {
         description: 'initial query, limit 10, skip 0',
         query: { $limit: 10 },
         response: {
@@ -821,8 +865,9 @@ describe('Service Module - Mutations', function () {
           } = props
 
           return {
+            defaultLimit: 10,
+            defaultSkip: 0,
             'main-list': {
-              defaultSkip: 0,
               mostRecent: {
                 query,
                 queryId,
@@ -864,8 +909,9 @@ describe('Service Module - Mutations', function () {
           } = props
 
           return {
+            defaultLimit: 10,
+            defaultSkip: 0,
             'main-list': {
-              defaultSkip: 0,
               mostRecent: {
                 query,
                 queryId,
@@ -918,8 +964,9 @@ describe('Service Module - Mutations', function () {
           } = props
 
           return {
+            defaultLimit: 10,
+            defaultSkip: 0,
             'main-list': {
-              defaultSkip: 0,
               mostRecent: {
                 query,
                 queryId,

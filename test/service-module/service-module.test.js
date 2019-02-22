@@ -883,7 +883,10 @@ describe('Service Module', () => {
         preferUpdate: false,
         replaceItems: false,
         servicePath: 'todos',
-        pagination: {},
+        pagination: {
+          defaultLimit: null,
+          defaultSkip: null
+        },
         paramsForServer: [],
         whitelist: []
       }

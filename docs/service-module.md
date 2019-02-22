@@ -363,19 +363,32 @@ The `find` action queries data from the remote server.  It returns a promise tha
 ```js
 {
   pagination: {
-    default: {
-      query: {}, // Same as params.query
-      queriedAt: 1538594642481, // The timestamp when the query returned
-      ids: [0, 1, 2], // the ids in the store for the records that were returned from the server
-      limit: 0, // the response.limit
-      skip: 0, // the response.skip
-      total: 3 // the response.total
+    defaultLimit: 25,
+    defaultSkip: 0,
+    mainListView: {
+      mostRecent: {
+        query: {},
+        queryId: '{}',
+        queryParams: {},
+        pageId: '{$limit:25,$skip:0}',
+        pageParams: { $limit: 25, $skip: 0 },
+        queriedAt: 1538594642481
+      },
+      '{}': {
+        total: 25,
+        queryParams: {},
+        '{$limit:25,$skip:0}': {
+          pageParams: { $limit: 1 },
+          ids: [ 1 ],
+          queriedAt: 1538594642481
+        }
+      }
     }
   }
 }
 ```
 
-It's possible that you'll want to store pagination information for more than one query.  This might be for different components making queries against the same service, for example.  You can use the `params.qid` (query identifier) property to assign a name to the query.  If you set a `qid` of `mainListView`, for example, the pagination for this query will show up under `pagination.mainListView`.  The `pagination.default` property will be used any time a `params.qid` is not provided.  Here's an example of what this might look like:
+Unless you're building a small demo, your app will require to storing pagination information for more than one query.  This might be for different components making queries against the same service.  You can use the `params.qid` (query identifier) property to assign a name to the query.  If you set a `qid` of `mainListView`, for example, the pagination for this query will show up under `pagination.mainListView`.  The `pagination.default` property will be used any time a `params.qid` is not provided.  Here's an example of what this might look like:
 
 **`params = { query: { $limit: 1 }, qid: 'mainListView' }`**
 
@@ -383,13 +396,26 @@ It's possible that you'll want to store pagination information for more than one
 // Data in the store
 {
   pagination: {
+    defaultLimit: 25,
+    defaultSkip: 0,
     mainListView: {
-      query: { $limit: 1 }, // Same as params.query
-      queriedAt: 1538594642481, // The timestamp when the query returned
-      ids: [0], // the ids in the store for the records that were returned from the server
-      limit: 1, // the response.limit
-      skip: 0, // the response.skip
-      total: 3 // the response.total
+      mostRecent: {
+        query: { $limit: 1 },
+        queryId: '{}',
+        queryParams: {},
+        pageId: '{$limit:1}',
+        pageParams: { $limit: 1 },
+        queriedAt: 1538594642481
+      },
+      '{}': {
+        total: 25,
+        queryParams: {},
+        '{$limit:1}': {
+          pageParams: { $limit: 1 },
+          ids: [ 1 ],
+          queriedAt: 1538594642481
+        }
+      }
     }
   }
 }

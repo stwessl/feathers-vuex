@@ -29,7 +29,10 @@ export default function makeDefaultState (servicePath, options) {
     skipRequestIfExists,
     preferUpdate,
     replaceItems,
-    pagination: {},
+    pagination: {
+      defaultLimit: null,
+      defaultSkip: null
+    },
     paramsForServer,
     whitelist,
 

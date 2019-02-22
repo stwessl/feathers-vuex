@@ -262,11 +262,11 @@ export default function makeServiceMutations (servicePath, { debug, globalModels
       if (!state.pagination[qid]) {
         Vue.set(state.pagination, qid, {})
       }
-      if (!query.$limit && response.hasOwnProperty('limit')) {
-        Vue.set(state.pagination[qid], 'defaultLimit', response.limit)
+      if (!query.hasOwnProperty('$limit') && response.hasOwnProperty('limit')) {
+        Vue.set(state.pagination, 'defaultLimit', response.limit)
       }
-      if (!query.$skip && response.hasOwnProperty('skip')) {
-        Vue.set(state.pagination[qid], 'defaultSkip', response.skip)
+      if (!query.hasOwnProperty('$skip') && response.hasOwnProperty('skip')) {
+        Vue.set(state.pagination, 'defaultSkip', response.skip)
       }
 
       const mostRecent = {
