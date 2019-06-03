@@ -87,7 +87,7 @@ export default {
     },
     fetchData () {
       if (!this.local) {
-        if (this.id !== null && this.id !== undefined && !this.query && !this.fetchQuery) {
+        if (this.id !== null && this.id !== undefined ) {
           return this.getData()
         } else {
           console.log(`No query and no id provided, so no data will be fetched.`)
